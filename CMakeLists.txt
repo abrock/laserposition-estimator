@@ -24,8 +24,22 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Quick)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Quick)
+find_package(Qt5DBus CONFIG REQUIRED)
+find_package(Qt5Widgets CONFIG REQUIRED)
+find_package(Qt5Quick CONFIG REQUIRED)
+find_package(Qt5Core CONFIG REQUIRED)
+find_package(QT NAMES Qt6 Qt5 COMPONENTS Core Quick REQUIRED)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Core Quick REQUIRED)
+include_directories(${Qt5Widgets_INCLUDE_DIRS})
+
+find_package(OpenCV REQUIRED)
+include_directories(${OpenCV_INCLUDE_DIRS})
+
+find_package(Boost COMPONENTS system filesystem iostreams REQUIRED)
+
+find_package(RunningStats REQUIRED)
+include_directories(${RUNNINGSTATS_INCLUDE_DIRS})
+
 
 set(PROJECT_SOURCES
         main.cpp
@@ -63,6 +77,7 @@ target_link_libraries(laserposition-estimator
   PRIVATE
   Qt${QT_VERSION_MAJOR}::Core
   Qt${QT_VERSION_MAJOR}::Quick
+  Qt${QT_VERSION_MAJOR}::Widgets
 )
 
 target_link_libraries(laserposition-estimator
@@ -71,6 +86,8 @@ target_link_libraries(laserposition-estimator
   glib-2.0 gio-2.0 gobject-2.0 gthread-2.0
   glog::glog
   fmt::fmt
+  ${OpenCV_LIBRARIES}
+  ${RUNNINGSTATS_LIBRARIES}
 )
 
 set_target_properties(laserposition-estimator PROPERTIES

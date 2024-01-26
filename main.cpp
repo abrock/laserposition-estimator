@@ -1,7 +1,10 @@
 #include "cameramanager.h"
 
+#include <QApplication>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
+#include <QQmlContext>
+#include <QtQuick>
 
 #include <thread>
 
@@ -15,10 +18,12 @@ int main(int argc, char *argv[])
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 #endif
-    QGuiApplication app(argc, argv);
+    QApplication app(argc, argv);
 
     CameraManager manager;
-    std::thread manager_thread(&CameraManager::runCamera, manager);
+    manager.makeWindow();
+    std::thread manager_thread(&CameraManager::runCamera, std::ref(manager));
+    std::thread waitkey_thread(&CameraManager::runWaitKey, std::ref(manager));
 
     QQmlApplicationEngine engine;
     const QUrl url(QStringLiteral("qrc:/main.qml"));
@@ -32,5 +37,6 @@ int main(int argc, char *argv[])
     int const result = app.exec();
     manager.stop();
     manager_thread.join();
+    waitkey_thread.join();
     return result;
 }
