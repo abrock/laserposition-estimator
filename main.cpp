@@ -20,6 +20,9 @@ int main(int argc, char *argv[])
 #endif
     QApplication app(argc, argv);
 
+    app.setOrganizationName("laserposition-estimator");
+    app.setOrganizationDomain("laserposition-estimator");
+
     CameraManager manager;
     manager.makeWindow();
     std::thread manager_thread(&CameraManager::runCamera, std::ref(manager));
@@ -27,6 +30,7 @@ int main(int argc, char *argv[])
 
     QQmlApplicationEngine engine;
     const QUrl url(QStringLiteral("qrc:/main.qml"));
+    engine.rootContext()->setContextProperty("cameraManager", &manager);
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,
                      &app, [url](QObject *obj, const QUrl &objUrl) {
         if (!obj && url == objUrl)

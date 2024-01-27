@@ -44,6 +44,9 @@ void CameraManager::runCamera() {
     arv_camera_start_acquisition (camera, &error);
     CHECK_EQ(nullptr, error) << error->message;
 
+    camera_running = true;
+    setExposure(requested_exposure);
+
     for (size_t ii = 0; !stopped; ++ii) {
         ArvBuffer *buffer;
 
@@ -121,12 +124,15 @@ void CameraManager::analyze(cv::Mat1b const& img, cv::Mat3b& colored) {
     }
     double const px_pos_x = x_stats.getMean() / px2mm_factor;
     double const px_pos_y = y_stats.getMean() / px2mm_factor;
-    println("Evaluated {}px ({}%)", x_stats.getCount(), 100.0 * double(x_stats.getCount()) / (img.rows * img.cols));
+    println("Evaluated {}px ({}%)", x_stats.getBinCount(), 100.0 * double(x_stats.getBinCount()) / (img.rows * img.cols));
     println("X pos: {} ({}px)", x_stats.getMean(), px_pos_x);
     println("Y pos: {} ({}px)", y_stats.getMean(), px_pos_y);
     cv::Scalar const line_color(255, 0, 0);
     cv::line(colored, cv::Point(px_pos_x, 1), cv::Point(px_pos_x, img.size().height-2), line_color, 13);
     cv::line(colored, cv::Point(1, px_pos_y), cv::Point(img.size().width-2, px_pos_y), line_color, 13);
+
+    current_pos = {x_stats.getMean(), y_stats.getMean()};
+    handlePositionResult(current_pos);
 }
 
 void CameraManager::runWaitKey() {
@@ -174,6 +180,64 @@ void CameraManager::decreaseExposureTime() {
 
 void CameraManager::makeWindow() {
     cv::namedWindow(window_name);
+}
+
+std::string CameraManager::makePosString(const cv::Vec2d &pos) {
+    return fmt::format("x={:.3f}mm, y={:.3f}mm", pos[0], pos[1]);
+}
+
+void CameraManager::handlePositionResult(cv::Vec2d const& pos) {
+    emit positionDetected(QString::fromStdString(makePosString(pos)));
+
+    if (!is_finite(ref_a_pos) || !is_finite(ref_b_pos)) {
+        return;
+    }
+
+    cv::Vec2d const expected = (ref_a_pos * (ref_b - test_val) + ref_b_pos * (test_val - ref_a)) / (ref_b - ref_a);
+    cv::Vec2d const error = pos - expected;
+
+    emit testValEvaluated(
+                QString::fromStdString(makePosString(expected)),
+                QString::fromStdString(makePosString(error))
+                              );
+}
+
+void CameraManager::setExposure(double const exposure_us) {
+    requested_exposure = exposure_us;
+    if (!camera_running) {
+        println("camera not running");
+        return;
+    }
+    if (!ARV_IS_CAMERA(camera)) {
+        println("camera not valid");
+        return;
+    }
+    GError* error = nullptr;
+    arv_camera_set_exposure_time(camera, exposure_us, &error);
+    CHECK_EQ(nullptr, error) << error->message;
+    println("Set exposure time to {}", exposure_us);
+}
+
+void CameraManager::setRefA(const double val) {
+    ref_a = val;
+}
+
+void CameraManager::setRefB(const double val) {
+    ref_b = val;
+}
+
+void CameraManager::setTestVal(const double val) {
+    test_val = val;
+}
+
+void CameraManager::assignRefA() {
+    ref_a_pos = current_pos;
+    emit refPosSetA(QString::fromStdString(makePosString(ref_a_pos)));
+}
+
+void CameraManager::assignRefB() {
+    ref_b_pos = current_pos;
+    emit refPosSetB(QString::fromStdString(makePosString(ref_b_pos)));
 }
 
 void CameraManager::stop() {
