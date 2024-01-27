@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.14)
 
 project(laserposition-estimator VERSION 0.1 LANGUAGES CXX)
 
-include_directories("/usr/local/include/aravis-0.10/")
+include_directories("/usr/local/include/aravis-0.8/")
 
 find_package(PkgConfig REQUIRED)
 pkg_search_module(GLIB REQUIRED glib-2.0)
@@ -82,7 +82,7 @@ target_link_libraries(laserposition-estimator
 
 target_link_libraries(laserposition-estimator
   PUBLIC
-  libaravis-0.10.so
+  libaravis-0.8.so
   glib-2.0 gio-2.0 gobject-2.0 gthread-2.0
   glog::glog
   fmt::fmt
