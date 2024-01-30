@@ -112,7 +112,7 @@ cv::Mat3b CameraManager::color_exposure(const cv::Mat1b &input) {
 
 void CameraManager::analyze(cv::Mat1b const& img, cv::Mat3b& colored) {
     SpotFinder finder;
-    double const px2mm_factor = 1'000.0 / um_per_px;
+    double const px2mm_factor = um_per_px / 1'000.0;
     current_pos = finder.defaultFinder(img) * px2mm_factor;
     double const px_pos_x = current_pos[0] / px2mm_factor;
     double const px_pos_y = current_pos[1] / px2mm_factor;
