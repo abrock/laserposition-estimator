@@ -44,7 +44,7 @@ public:
 
     void process_image(cv::Mat const& img);
 
-    cv::Mat3b color_exposure(cv::Mat1b const& input);
+    static cv::Mat3b color_exposure(cv::Mat1b const& input);
 
     void stop();
     void analyze(const cv::Mat1b &img, cv::Mat3b &colored);

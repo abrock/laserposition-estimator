@@ -24,6 +24,8 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-fPIC")
+
 find_package(Qt5DBus CONFIG REQUIRED)
 find_package(Qt5Widgets CONFIG REQUIRED)
 find_package(Qt5Quick CONFIG REQUIRED)
@@ -40,14 +42,28 @@ find_package(Boost COMPONENTS system filesystem iostreams REQUIRED)
 find_package(RunningStats REQUIRED)
 include_directories(${RUNNINGSTATS_INCLUDE_DIRS})
 
+find_package(GTest REQUIRED)
+
+set(COMMON_LIBS
+    glog::glog
+    ${RUNNINGSTATS_LIBRARIES}
+    ${OpenCV_LIBRARIES}
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Quick
+    Qt${QT_VERSION_MAJOR}::Widgets
+    fmt::fmt
+    libaravis-0.8.so
+    glib-2.0 gio-2.0 gobject-2.0 gthread-2.0
+)
+
+set(LIB_SOURCES
+    cameramanager.cpp
+    spotfinder.cpp
+    misc.cpp
+)
 
 set(PROJECT_SOURCES
         main.cpp
-
-        cameramanager.cpp
-        spotfinder.cpp
-        misc.cpp
-
         qml.qrc
 )
 
@@ -55,40 +71,27 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(laserposition-estimator
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
+        ${LIB_SOURCES}
     )
-# Define target properties for Android with Qt 6 as:
-#    set_property(TARGET laserposition-estimator APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
-#                 ${CMAKE_CURRENT_SOURCE_DIR}/android)
-# For more information, see https://doc.qt.io/qt-6/qt-add-executable.html#target-creation
 else()
-    if(ANDROID)
-        add_library(laserposition-estimator SHARED
-            ${PROJECT_SOURCES}
-        )
-# Define properties for Android with Qt 5 after find_package() calls as:
-#    set(ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android")
-    else()
-        add_executable(laserposition-estimator
-          ${PROJECT_SOURCES}
-        )
-    endif()
+    add_executable(laserposition-estimator
+        ${PROJECT_SOURCES}
+        ${LIB_SOURCES}
+    )
+    add_executable(tests tests.cpp
+        ${LIB_SOURCES}
+        test-spotfinders.cpp
+    )
 endif()
 
-target_link_libraries(laserposition-estimator
-  PRIVATE
-  Qt${QT_VERSION_MAJOR}::Core
-  Qt${QT_VERSION_MAJOR}::Quick
-  Qt${QT_VERSION_MAJOR}::Widgets
+target_link_libraries(tests
+    GTest::gtest
+    ${COMMON_LIBS}
 )
 
+
 target_link_libraries(laserposition-estimator
-  PUBLIC
-  libaravis-0.8.so
-  glib-2.0 gio-2.0 gobject-2.0 gthread-2.0
-  glog::glog
-  fmt::fmt
-  ${OpenCV_LIBRARIES}
-  ${RUNNINGSTATS_LIBRARIES}
+  ${COMMON_LIBS}
 )
 
 set_target_properties(laserposition-estimator PROPERTIES
@@ -106,4 +109,7 @@ install(TARGETS laserposition-estimator
 if(QT_VERSION_MAJOR EQUAL 6)
     qt_import_qml_plugins(laserposition-estimator)
     qt_finalize_executable(laserposition-estimator)
+
+    qt_import_qml_plugins(tests)
+    qt_finalize_executable(tests)
 endif()
