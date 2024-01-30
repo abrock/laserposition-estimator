@@ -45,6 +45,7 @@ set(PROJECT_SOURCES
         main.cpp
 
         cameramanager.cpp
+        spotfinder.cpp
         misc.cpp
 
         qml.qrc

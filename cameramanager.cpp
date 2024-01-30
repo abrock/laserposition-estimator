@@ -10,6 +10,8 @@ using namespace Misc;
 #include <runningstats/runningstats.h>
 namespace rs = runningstats;
 
+#include "spotfinder.h"
+
 void CameraManager::runCamera() {
     println("Running CameraManager::runCamera");
 
@@ -109,29 +111,20 @@ cv::Mat3b CameraManager::color_exposure(const cv::Mat1b &input) {
 }
 
 void CameraManager::analyze(cv::Mat1b const& img, cv::Mat3b& colored) {
-    rs::MeanFromHist x_stats;
-    rs::MeanFromHist y_stats;
-    double const px2mm_factor = um_per_px / 1'000;
-    for (int ii = 0; ii < img.rows; ++ii) {
-        double const y_mm = double(ii) * px2mm_factor;
-        for (int jj = 0; jj < img.cols; ++jj) {
-            if (img(ii, jj) > 50) {
-                double const x_mm = double(jj) * px2mm_factor;
-                x_stats.push_unsafe(x_mm, img(ii, jj));
-                y_stats.push_unsafe(y_mm, img(ii, jj));
-            }
-        }
-    }
-    double const px_pos_x = x_stats.getMean() / px2mm_factor;
-    double const px_pos_y = y_stats.getMean() / px2mm_factor;
-    println("Evaluated {}px ({}%)", x_stats.getBinCount(), 100.0 * double(x_stats.getBinCount()) / (img.rows * img.cols));
-    println("X pos: {} ({}px)", x_stats.getMean(), px_pos_x);
-    println("Y pos: {} ({}px)", y_stats.getMean(), px_pos_y);
+    SpotFinder finder;
+    double const px2mm_factor = 1'000.0 / um_per_px;
+    current_pos = finder.defaultFinder(img) * px2mm_factor;
+    double const px_pos_x = current_pos[0] / px2mm_factor;
+    double const px_pos_y = current_pos[1] / px2mm_factor;
+    println("Evaluated {}px ({}%)",
+            finder.num_px_evaluated,
+            100.0 * double(finder.num_px_evaluated) / (img.rows * img.cols));
+    println("X pos: {} ({}px)", current_pos[0], px_pos_x);
+    println("Y pos: {} ({}px)", current_pos[0], px_pos_y);
     cv::Scalar const line_color(255, 0, 0);
-    cv::line(colored, cv::Point(px_pos_x, 1), cv::Point(px_pos_x, img.size().height-2), line_color, 13);
-    cv::line(colored, cv::Point(1, px_pos_y), cv::Point(img.size().width-2, px_pos_y), line_color, 13);
+    cv::line(colored, cv::Point(px_pos_x, 1), cv::Point(px_pos_x, img.size().height-2), line_color, 1);
+    cv::line(colored, cv::Point(1, px_pos_y), cv::Point(img.size().width-2, px_pos_y), line_color, 1);
 
-    current_pos = {x_stats.getMean(), y_stats.getMean()};
     handlePositionResult(current_pos);
 }
 
