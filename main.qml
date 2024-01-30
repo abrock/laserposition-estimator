@@ -50,18 +50,21 @@ Window {
                     }
                     RowLayout {
                         Text {
-                            text: "Position: "
+                            text: "Raw position: "
                         }
                         Text {
                             text: "unknown"
                             id: position_text
                             Connections {
                                 target: cameraManager
-                                function onPositionDetected(val) {
+                                function onPositionDetectedRaw(val) {
                                     position_text.text = val;
                                 }
                             }
-
+                        }
+                        Button {
+                            text: "Set current position as origin"
+                            onClicked: cameraManager.setOrigin();
                         }
                     }
                     RowLayout {

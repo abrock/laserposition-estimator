@@ -180,7 +180,8 @@ std::string CameraManager::makePosString(const cv::Vec2d &pos) {
 }
 
 void CameraManager::handlePositionResult(cv::Vec2d const& pos) {
-    emit positionDetected(QString::fromStdString(makePosString(pos)));
+    emit positionDetectedRaw(QString::fromStdString(makePosString(pos)));
+    emit positionDetected(QString::fromStdString(makePosString(pos-origin)));
 
     if (!is_finite(ref_a_pos) || !is_finite(ref_b_pos)) {
         return;
@@ -190,7 +191,7 @@ void CameraManager::handlePositionResult(cv::Vec2d const& pos) {
     cv::Vec2d const error = pos - expected;
 
     emit testValEvaluated(
-                QString::fromStdString(makePosString(expected)),
+                QString::fromStdString(makePosString(expected-origin)),
                 QString::fromStdString(makePosString(error))
                               );
 }
@@ -231,6 +232,10 @@ void CameraManager::assignRefA() {
 void CameraManager::assignRefB() {
     ref_b_pos = current_pos;
     emit refPosSetB(QString::fromStdString(makePosString(ref_b_pos)));
+}
+
+void CameraManager::setOrigin() {
+    origin = current_pos;
 }
 
 void CameraManager::stop() {

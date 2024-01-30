@@ -35,6 +35,8 @@ class CameraManager : public QObject{
 
     cv::Vec2d current_pos;
 
+    cv::Vec2d origin{0,0};
+
     cv::Vec2d ref_a_pos{std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN()};
 
     cv::Vec2d ref_b_pos{std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN()};
@@ -68,7 +70,16 @@ public:
     Q_INVOKABLE void assignRefA();
     Q_INVOKABLE void assignRefB();
 
+    Q_INVOKABLE void setOrigin();
+
 signals:
+    /**
+     * @brief positionDetectedRaw is the raw position on the sensor without subtracting the current origin vector.
+     */
+    void positionDetectedRaw(QString const str);
+    /**
+     * @brief positionDetected is the current position with origin offset applied.
+     */
     void positionDetected(QString const str);
     void refPosSetA(QString const str);
     void refPosSetB(QString const str);
