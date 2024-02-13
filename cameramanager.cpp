@@ -186,7 +186,7 @@ void CameraManager::makeWindow() {
 }
 
 std::string CameraManager::makePosString(const cv::Vec2d &pos) {
-    return fmt::format("x={:.3f}mm, y={:.3f}mm", pos[0], pos[1]);
+    return fmt::format("x={:.4f}mm, y={:.4f}mm", pos[0], pos[1]);
 }
 
 void CameraManager::handlePositionResult(cv::Vec2d const& pos) {
