@@ -3,6 +3,8 @@
 
 #include <opencv2/core.hpp>
 
+#include <random>
+
 class SpotFinder {
 public:
     /**
@@ -25,6 +27,11 @@ public:
     cv::Vec2d simpleHistogramFinder(cv::Mat_<uint8_t> const& img);
 
     cv::Vec2d defaultFinder(cv::Mat_<uint8_t> const& img);
+
+    static void make_test_img(
+            cv::Mat_<uint8_t>& img,
+            cv::Vec2d const& center,
+            std::mt19937_64& rng);
 };
 
 #endif // SPOTFINDER_H

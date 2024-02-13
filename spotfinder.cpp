@@ -30,3 +30,20 @@ cv::Vec2d SpotFinder::simpleHistogramFinder(const cv::Mat_<uint8_t> &img) {
 cv::Vec2d SpotFinder::defaultFinder(const cv::Mat_<uint8_t> &img) {
     return simpleHistogramFinder(img);
 }
+
+void SpotFinder::make_test_img(cv::Mat_<uint8_t> &img, const cv::Vec2d &center, std::mt19937_64 &rng) {
+    double const min = 25;
+    double const max = 260;
+    double const noise_factor = 1;
+    double const sigma = 10;
+    for (int yy = 0; yy < img.rows; ++yy) {
+        for (int xx = 0; xx < img.cols; ++xx) {
+            cv::Vec2d const pos(xx,yy);
+            cv::Vec2d const diff = pos - center;
+            double const value = min + (max-min)*std::exp(-diff.ddot(diff)/(2*sigma*sigma));
+            img(yy,xx) = cv::saturate_cast<uint8_t>(
+                        std::normal_distribution<double>(value, noise_factor*sqrt(value))(rng)
+                        );
+        }
+    }
+}
