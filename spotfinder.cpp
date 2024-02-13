@@ -3,6 +3,8 @@
 #include <runningstats/runningstats.h>
 namespace rs = runningstats;
 
+#include <ceres/ceres.h>
+
 SpotFinder::SpotFinder()
 {
 
@@ -46,4 +48,92 @@ void SpotFinder::make_test_img(cv::Mat_<uint8_t> &img, const cv::Vec2d &center, 
                         );
         }
     }
+}
+
+struct GaussCost {
+    int _pos_x;
+    int _pos_y;
+    float value;
+
+    template<class T>
+    static T square(T const val) {
+        return val*val;
+    }
+
+    template<class T>
+    bool operator()(
+            const T* const pos,
+            const T* const sigma,
+            const T* const scale,
+            const T* const offset,
+            T* residuals) const {
+        T const diff_x = square((T(_pos_x) - pos[0])/sigma[0]);
+        T const diff_y = square((T(_pos_y) - pos[1])/sigma[1]);
+        T const func_val = ceres::exp(-(diff_x + diff_y)/T(2));
+
+        residuals[0] =
+                T(-value)
+                + offset[0]
+                + scale[0] * func_val;
+
+        return true;
+    }
+
+    static ceres::CostFunction* create(int const pos_x, int const pos_y, float value) {
+      //     std::cout << wp << ip << "\n";
+      return (new ceres::AutoDiffCostFunction<GaussCost, 1, 2, 2, 1, 1>(
+        new GaussCost(pos_x, pos_y, value)));
+    }
+
+};
+
+cv::Vec2d SpotFinder::ceresFitFinder(const cv::Mat_<uint8_t> &img) {
+    ceres::Problem problem;
+
+    cv::Vec2d result = simpleHistogramFinder(img);
+
+    cv::Vec2d sigma{roi.width/2, roi.height/2};
+
+    double scale = 255;
+    double offset = 0;
+
+    for (int yy = roi.tl().y; yy < roi.br().y; ++yy) {
+        for (int xx = roi.tl().x; xx < roi.br().x; ++xx) {
+            problem.AddResidualBlock(
+                        GaussCost::create(xx, yy, img(yy, xx)),
+                        nullptr,
+                        result.val,
+                        sigma.val,
+                        &scale,
+                        &offset
+                        );
+        }
+    }
+    ceres::Solver::Options ceres_opts;
+
+    ceres::Solver::Summary summary;
+
+    ceres_opts.minimizer_progress_to_stdout = false;
+    ceres_opts.linear_solver_type = ceres::DENSE_SCHUR;
+
+    ceres_opts.max_num_iterations = 1000;
+    ceres_opts.max_num_consecutive_invalid_steps = 100;
+    double const relative_tolerance = 1e-1;
+    ceres_opts.function_tolerance *= relative_tolerance;
+    ceres_opts.gradient_tolerance *= relative_tolerance;
+    ceres_opts.parameter_tolerance *= relative_tolerance;
+
+    problem.SetParameterBlockConstant(result.val);
+    problem.SetParameterBlockConstant(sigma.val);
+    ceres::Solve(ceres_opts, &problem, &summary);
+
+    problem.SetParameterBlockVariable(sigma.val);
+    ceres::Solve(ceres_opts, &problem, &summary);
+
+    problem.SetParameterBlockVariable(result.val);
+    ceres::Solve(ceres_opts, &problem, &summary);
+
+    //std::cout << summary.FullReport() << std::endl;
+
+    return result;
 }

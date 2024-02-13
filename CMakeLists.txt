@@ -42,9 +42,12 @@ find_package(Boost COMPONENTS system filesystem iostreams REQUIRED)
 find_package(RunningStats REQUIRED)
 include_directories(${RUNNINGSTATS_INCLUDE_DIRS})
 
+find_package(Ceres REQUIRED)
+
 find_package(GTest REQUIRED)
 
 set(COMMON_LIBS
+    ceres
     glog::glog
     ${RUNNINGSTATS_LIBRARIES}
     ${OpenCV_LIBRARIES}

@@ -26,6 +26,8 @@ public:
 
     cv::Vec2d simpleHistogramFinder(cv::Mat_<uint8_t> const& img);
 
+    cv::Vec2d ceresFitFinder(cv::Mat_<uint8_t> const& img);
+
     cv::Vec2d defaultFinder(cv::Mat_<uint8_t> const& img);
 
     static void make_test_img(
