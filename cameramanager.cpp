@@ -27,6 +27,17 @@ void CameraManager::runCamera() {
 
     camera = arv_camera_new (NULL, &error);
 
+    if (!ARV_IS_CAMERA(camera)) {
+        cv::Mat_<uint8_t> img(100, 100, uint8_t(0));
+        std::mt19937_64 rng(std::random_device{}());
+        while(true) {
+            sleep(1);
+            SpotFinder::make_test_img(img, {50, 50}, rng);
+            process_image(img);
+        }
+        return;
+    }
+
     CHECK(ARV_IS_CAMERA(camera));
 
     ArvStream *stream = NULL;
@@ -99,6 +110,12 @@ void CameraManager::process_image(const cv::Mat &img) {
     cv::Mat3b colored = color_exposure(img);
     analyze(img, colored);
     cv::imshow(window_name, downscale_if_neccessary(colored, max_width_shown));
+    if (current_roi.empty()) {
+        cv::destroyWindow(spot_window_name);
+    }
+    else {
+        cv::imshow(spot_window_name, downscale_if_neccessary(colored(current_roi), max_width_shown));
+    }
     cv::waitKey(1);
 }
 
@@ -124,6 +141,7 @@ void CameraManager::analyze(cv::Mat1b const& img, cv::Mat3b& colored) {
     SpotFinder finder;
     double const px2mm_factor = um_per_px / 1'000.0;
     current_pos = finder.defaultFinder(img) * px2mm_factor;
+    current_roi = finder.roi;
     double const px_pos_x = current_pos[0] / px2mm_factor;
     double const px_pos_y = current_pos[1] / px2mm_factor;
     println("Evaluated {}px ({}%)",

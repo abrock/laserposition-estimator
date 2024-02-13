@@ -22,6 +22,7 @@ class CameraManager : public QObject{
     bool stopped = false;
 
     std::string window_name = "img";
+    std::string spot_window_name = "spot";
 
     double um_per_px = 2.4;
 
@@ -45,6 +46,8 @@ class CameraManager : public QObject{
      * @brief Maximum width of images shown to the user using cv::imshow
      */
     size_t max_width_shown = 1600;
+
+    cv::Rect current_roi;
 
     /**
      * @brief downscale_if_neccessary scales an image down if its width is larger than a given maximum width.
