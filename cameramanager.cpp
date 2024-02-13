@@ -12,6 +12,16 @@ namespace rs = runningstats;
 
 #include "spotfinder.h"
 
+cv::Mat CameraManager::downscale_if_neccessary(const cv::Mat &input, size_t max_width) {
+    if (input.size().width <= max_width) {
+        return input;
+    }
+    cv::Mat result;
+    double const factor = double(input.size().width) / max_width;
+    cv::resize(input, result, cv::Size(), 1.0/factor, 1.0/factor, cv::INTER_AREA);
+    return result;
+}
+
 void CameraManager::runCamera() {
     println("Running CameraManager::runCamera");
 
@@ -88,7 +98,7 @@ void CameraManager::runCamera() {
 void CameraManager::process_image(const cv::Mat &img) {
     cv::Mat3b colored = color_exposure(img);
     analyze(img, colored);
-    cv::imshow(window_name, colored);
+    cv::imshow(window_name, downscale_if_neccessary(colored, max_width_shown));
     cv::waitKey(1);
 }
 

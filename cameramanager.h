@@ -41,6 +41,20 @@ class CameraManager : public QObject{
 
     cv::Vec2d ref_b_pos{std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN()};
 
+    /**
+     * @brief Maximum width of images shown to the user using cv::imshow
+     */
+    size_t max_width_shown = 1600;
+
+    /**
+     * @brief downscale_if_neccessary scales an image down if its width is larger than a given maximum width.
+     * If the width is smaller it is returned unchanged.
+     * @param input
+     * @param max_width
+     * @return
+     */
+    static cv::Mat downscale_if_neccessary(cv::Mat const& input, size_t max_width);
+
 public:
     void runCamera();
 
