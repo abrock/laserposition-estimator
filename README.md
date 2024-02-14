@@ -8,6 +8,7 @@ cmake
 libboost-filesystem-dev
 libboost-iostreams-dev
 libboost-system-dev
+libceres-dev
 libfmt-dev
 libglib2.0-dev
 libgoogle-glog-dev
