@@ -12,6 +12,11 @@ namespace rs = runningstats;
 
 #include "spotfinder.h"
 
+#include <filesystem>
+namespace fs = std::filesystem;
+
+#include <fstream>
+
 cv::Mat CameraManager::downscale_if_neccessary(const cv::Mat &input, size_t max_width) {
     if (input.size().width <= max_width) {
         return input;
@@ -20,6 +25,32 @@ cv::Mat CameraManager::downscale_if_neccessary(const cv::Mat &input, size_t max_
     double const factor = double(input.size().width) / max_width;
     cv::resize(input, result, cv::Size(), 1.0/factor, 1.0/factor, cv::INTER_AREA);
     return result;
+}
+
+cv::Vec2d CameraManager::averagePos() const {
+    rs::RunningStats stats_x, stats_y;
+    for (cv::Vec2d const& it : pos_history) {
+        stats_x.push_unsafe(it[0]);
+        stats_y.push_unsafe(it[1]);
+    }
+    return {stats_x.getMean(), stats_y.getMean()};
+}
+
+cv::Vec2d CameraManager::expectedPos() const {
+    return (ref_a_pos * (ref_b - test_val) + ref_b_pos * (test_val - ref_a)) / (ref_b - ref_a);
+}
+
+cv::Vec2d CameraManager::errorPos () const {
+    return averagePos() - expectedPos();
+}
+
+cv::Vec2d CameraManager::stdDevPos() const {
+    rs::RunningStats stats_x, stats_y;
+    for (cv::Vec2d const& it : pos_history) {
+        stats_x.push_unsafe(it[0]);
+        stats_y.push_unsafe(it[1]);
+    }
+    return {stats_x.getStddev(), stats_y.getStddev()};
 }
 
 void CameraManager::runCamera() {
@@ -31,7 +62,7 @@ void CameraManager::runCamera() {
         cv::Mat_<uint8_t> img(100, 100, uint8_t(0));
         std::mt19937_64 rng(std::random_device{}());
         while(true) {
-            sleep(1);
+            usleep(500'000);
             SpotFinder::make_test_img(img, {50, 50}, rng);
             process_image(img);
         }
@@ -153,7 +184,12 @@ void CameraManager::analyze(cv::Mat1b const& img, cv::Mat3b& colored) {
     cv::line(colored, cv::Point(px_pos_x, 1), cv::Point(px_pos_x, img.size().height-2), line_color, 1);
     cv::line(colored, cv::Point(1, px_pos_y), cv::Point(img.size().width-2, px_pos_y), line_color, 1);
 
-    handlePositionResult(current_pos);
+    pos_history.push_front(current_pos);
+    while (pos_history.size() > average_count) {
+        pos_history.pop_back();
+    }
+
+    handlePositionResult(averagePos());
 }
 
 void CameraManager::runWaitKey() {
@@ -211,17 +247,55 @@ void CameraManager::handlePositionResult(cv::Vec2d const& pos) {
     emit positionDetectedRaw(QString::fromStdString(makePosString(pos)));
     emit positionDetected(QString::fromStdString(makePosString(pos-origin)));
 
-    if (!is_finite(ref_a_pos) || !is_finite(ref_b_pos)) {
-        return;
+    Misc::println("Samples until completion: {}", n_samples_until_completion);
+    if (n_samples_until_completion > 0) {
+        n_samples_until_completion--;
+        emitNSamplesUntilCompletion();
+        if (n_samples_until_completion == 0
+                && planned_action != PlannedAction::None) {
+            switch (planned_action) {
+            case PlannedAction::SetRefA:
+                ref_a_pos = pos;
+                emit refPosSetA(QString::fromStdString(makePosString(ref_a_pos)));
+                break;
+            case PlannedAction::SetRefB:
+                ref_b_pos = pos;
+                emit refPosSetB(QString::fromStdString(makePosString(ref_b_pos)));
+                break;
+            case PlannedAction::SetOrigin:
+                origin = pos;
+                break;
+            case PlannedAction::Log:
+                logState();
+                break;
+            }
+            planned_action = PlannedAction::None;
+        }
     }
 
-    cv::Vec2d const expected = (ref_a_pos * (ref_b - test_val) + ref_b_pos * (test_val - ref_a)) / (ref_b - ref_a);
-    cv::Vec2d const error = pos - expected;
+    if (is_finite(ref_a_pos) && is_finite(ref_b_pos)) {
+        cv::Vec2d const expected = (ref_a_pos * (ref_b - test_val) + ref_b_pos * (test_val - ref_a)) / (ref_b - ref_a);
+        cv::Vec2d const error = pos - expected;
 
-    emit testValEvaluated(
-                QString::fromStdString(makePosString(expected-origin)),
-                QString::fromStdString(makePosString(error))
-                              );
+        emit testValEvaluated(
+                    QString::fromStdString(makePosString(expected-origin)),
+                    QString::fromStdString(makePosString(error))
+                    );
+    }
+}
+
+void CameraManager::logState() const {
+    bool const existed = fs::exists(logfile);
+    std::ofstream out(logfile, std::fstream::app);
+
+    if (!existed) {
+        out << "test position; x-error, x-stddev; y-error; y-stddev, x-position, y-position" << std::endl;
+    }
+    out << test_val << "; "
+        << errorPos()[0] << "; " << stdDevPos()[0] << "; "
+        << errorPos()[1] << "; " << stdDevPos()[1] << "; "
+        << averagePos()[0] << "; " << averagePos()[1]
+        << std::endl;
 }
 
 void CameraManager::setExposure(double const exposure_us) {
@@ -253,17 +327,49 @@ void CameraManager::setTestVal(const double val) {
 }
 
 void CameraManager::assignRefA() {
-    ref_a_pos = current_pos;
-    emit refPosSetA(QString::fromStdString(makePosString(ref_a_pos)));
+    if (PlannedAction::None != planned_action) {
+        Misc::println("Warning: Assigning refA while another operation is running.");
+    }
+    planned_action = PlannedAction::SetRefA;
+    n_samples_until_completion = average_count;
+    emitNSamplesUntilCompletion();
+    emit refPosSetA("unknown");
 }
 
 void CameraManager::assignRefB() {
-    ref_b_pos = current_pos;
-    emit refPosSetB(QString::fromStdString(makePosString(ref_b_pos)));
+    if (PlannedAction::None != planned_action) {
+        Misc::println("Warning: Assigning refB while another operation is running.");
+    }
+    planned_action = PlannedAction::SetRefB;
+    n_samples_until_completion = average_count;
+    emitNSamplesUntilCompletion();
+    emit refPosSetB("unknown");
 }
 
 void CameraManager::setOrigin() {
-    origin = current_pos;
+    if (PlannedAction::None != planned_action) {
+        Misc::println("Warning: Assigning origin while another operation is running.");
+    }
+    planned_action = PlannedAction::SetOrigin;
+    n_samples_until_completion = average_count;
+    emitNSamplesUntilCompletion();
+}
+
+void CameraManager::setAverageCount(const int value) {
+    average_count = std::max(value, 1);
+}
+
+void CameraManager::storeLog() {
+    if (PlannedAction::None != planned_action) {
+        Misc::println("Warning: Storing log while another operation is running.");
+    }
+    planned_action = PlannedAction::Log;
+    n_samples_until_completion = average_count;
+    emitNSamplesUntilCompletion();
+}
+
+void CameraManager::emitNSamplesUntilCompletion() {
+    emit nSamplesUntilCompletion(QString::fromStdString(std::to_string(n_samples_until_completion)));
 }
 
 void CameraManager::stop() {

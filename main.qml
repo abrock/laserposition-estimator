@@ -28,6 +28,7 @@ Window {
                     property int ref_a: 0
                     property int ref_b: 100
                     property int test_val : 50
+                    property int average_count: 3
                 }
                 ColumnLayout {
                     anchors.topMargin: 9
@@ -47,6 +48,48 @@ Window {
                             }
                             Component.onCompleted: cameraManager.setExposure(value)
                         }
+                    }
+                    RowLayout {
+                        Text {
+                            text: "Number of samples for averaging: "
+                        }
+                        SpinBox {
+                            value: set.average_count
+                            stepSize: 1
+                            maximumValue: 300
+                            id: average_count
+                            onValueChanged: {
+                                set.average_count = value
+                                cameraManager.setAverageCount(value)
+                            }
+                            Component.onCompleted: cameraManager.setAverageCount(value)
+                        }
+                    }
+                    Rectangle {
+                        id: n_samples_until_completion_bg
+                        RowLayout {
+                            Text {
+                                text: "Number of samples until operation completed:"
+                            }
+                            Text {
+                                text: "0"
+                                id: n_samples_until_completion
+                                Connections {
+                                    target: cameraManager
+                                    function onNSamplesUntilCompletion(value) {
+                                        n_samples_until_completion.text = value;
+                                        if ("0" === value) {
+                                            n_samples_until_completion_bg.color = "#00ff00"
+                                        }
+                                        else {
+                                            n_samples_until_completion_bg.color = "#ff0000"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        width: childrenRect.width
+                        height: childrenRect.height
                     }
                     RowLayout {
                         Text {
@@ -188,6 +231,12 @@ Window {
                                     test_error.text = error;
                                 }
                             }
+                        }
+                    }
+                    RowLayout {
+                        Button {
+                            text: "Store values in logfile"
+                            onClicked: cameraManager.storeLog();
                         }
                     }
                 }

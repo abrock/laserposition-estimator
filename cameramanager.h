@@ -58,6 +58,29 @@ class CameraManager : public QObject{
      */
     static cv::Mat downscale_if_neccessary(cv::Mat const& input, size_t max_width);
 
+    std::list<cv::Vec2d> pos_history;
+
+    cv::Vec2d averagePos() const;
+    cv::Vec2d stdDevPos() const;
+    cv::Vec2d expectedPos() const;
+    cv::Vec2d errorPos() const;
+
+    size_t average_count = 1;
+
+    size_t n_samples_until_completion = 0;
+
+    enum struct PlannedAction {
+        None,
+        SetOrigin,
+        SetRefA,
+        SetRefB,
+        Log
+    };
+
+    PlannedAction planned_action = PlannedAction::None;
+
+    std::string logfile = "position-estimations.csv";
+
 public:
     void runCamera();
 
@@ -79,6 +102,8 @@ public:
 
     void handlePositionResult(const cv::Vec2d &pos);
 
+    void logState() const;
+
     Q_INVOKABLE void setExposure(const double exposure_us);
     Q_INVOKABLE void setRefA(const double val);
     Q_INVOKABLE void setRefB(const double val);
@@ -88,6 +113,12 @@ public:
     Q_INVOKABLE void assignRefB();
 
     Q_INVOKABLE void setOrigin();
+
+    Q_INVOKABLE void setAverageCount(const int value);
+
+    Q_INVOKABLE void storeLog();
+
+    void emitNSamplesUntilCompletion();
 
 signals:
     /**
@@ -102,6 +133,8 @@ signals:
     void refPosSetB(QString const str);
 
     void testValEvaluated(QString const expected, QString const error);
+
+    void nSamplesUntilCompletion(QString const val);
 };
 
 #endif // CAMERAMANAGER_H
