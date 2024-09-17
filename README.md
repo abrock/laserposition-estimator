@@ -45,6 +45,11 @@ cmake -G Ninja -DCMAKE_BUILD_TYPE=Release ../RunningStats
 ninja
 sudo ninja install
 
+### ParallelTime ###
+
+git clone https://github.com/abrock/ParallelTime
+Basically the same procedure as for RunningStats
+
 ### OpenCV ###
 
 You can use system libraries, but on Debian they are built without QT enabled, so for a better user interface you have to build it yourself:
