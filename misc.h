@@ -22,6 +22,8 @@ bool is_finite(cv::Vec<T, N> const& val) {
     return true;
 }
 
+std::vector<std::string> splitString(const std::string &in, const char s);
+
 }
 
 #endif // MISC_H

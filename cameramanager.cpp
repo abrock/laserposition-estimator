@@ -150,6 +150,11 @@ void CameraManager::process_image(const cv::Mat &img) {
     cv::waitKey(1);
 }
 
+size_t CameraManager::get_n_samples_until_completion() const
+{
+  return n_samples_until_completion;
+}
+
 cv::Mat3b CameraManager::color_exposure(const cv::Mat1b &input) {
     cv::Mat3b result;
     cv::merge(std::vector<cv::Mat1b>{input, input, input}, result);

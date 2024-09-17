@@ -12,6 +12,8 @@
 #include <QLabel>
 #include <QMouseEvent>
 
+#include "dbusreceiver.h"
+
 
 class CameraManager : public QObject{
     Q_OBJECT
@@ -81,10 +83,14 @@ class CameraManager : public QObject{
 
     std::string logfile = "position-estimations.csv";
 
+    DBusReceiver *dbus = nullptr;
+
 public:
     void runCamera();
 
     void process_image(cv::Mat const& img);
+
+    size_t get_n_samples_until_completion() const;
 
     static cv::Mat3b color_exposure(cv::Mat1b const& input);
 

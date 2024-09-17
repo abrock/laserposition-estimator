@@ -54,15 +54,18 @@ set(COMMON_LIBS
     Qt${QT_VERSION_MAJOR}::Core
     Qt${QT_VERSION_MAJOR}::Quick
     Qt${QT_VERSION_MAJOR}::Widgets
+    Qt${QT_VERSION_MAJOR}::DBus
     fmt::fmt
     libaravis-0.8.so
     glib-2.0 gio-2.0 gobject-2.0 gthread-2.0
+    ParallelTime
 )
 
 set(LIB_SOURCES
     cameramanager.cpp
     spotfinder.cpp
     misc.cpp
+    dbusreceiver.cpp
 )
 
 set(PROJECT_SOURCES
@@ -95,6 +98,12 @@ target_link_libraries(tests
 
 target_link_libraries(laserposition-estimator
   ${COMMON_LIBS}
+)
+
+add_executable(laserposition-dbus-sender laserposition-dbus-sender.cpp)
+
+target_link_libraries(laserposition-dbus-sender
+    ${COMMON_LIBS}
 )
 
 set_target_properties(laserposition-estimator PROPERTIES
