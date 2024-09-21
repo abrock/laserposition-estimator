@@ -47,8 +47,13 @@ sudo ninja install
 
 ### ParallelTime ###
 
-git clone https://github.com/abrock/ParallelTime
 Basically the same procedure as for RunningStats
+git clone https://github.com/abrock/ParallelTime
+mkdir build-paralleltime
+cd build-paralleltime
+cmake -G Ninja -DCMAKE_BUILD_TYPE=Release ../ParallelTime
+ninja
+sudo ninja install
 
 ### OpenCV ###
 
