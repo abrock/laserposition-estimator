@@ -36,6 +36,8 @@ class CameraManager : public QObject{
     double ref_b = 100;
     double test_val = 50;
 
+    std::string comment;
+
     cv::Vec2d current_pos;
 
     cv::Vec2d origin{0,0};
@@ -114,6 +116,8 @@ public:
     Q_INVOKABLE void setRefA(const double val);
     Q_INVOKABLE void setRefB(const double val);
     Q_INVOKABLE void setTestVal(const double val);
+
+    Q_INVOKABLE void setComment(const std::string &_comment);
 
     Q_INVOKABLE void assignRefA();
     Q_INVOKABLE void assignRefB();

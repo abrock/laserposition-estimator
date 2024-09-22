@@ -62,6 +62,7 @@ void requestThread(QString const a) {
     }
 
     dbus.manager->setTestVal(pos_arg.getValue());
+    dbus.manager->setComment(comment);
     dbus.manager->storeLog();
 
   }

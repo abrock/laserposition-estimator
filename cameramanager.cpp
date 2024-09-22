@@ -294,13 +294,13 @@ void CameraManager::logState() const {
     std::ofstream out(logfile, std::fstream::app);
 
     if (!existed) {
-        out << "test position; x-error, x-stddev; y-error; y-stddev, x-position, y-position" << std::endl;
+        out << "test position; x-error, x-stddev; y-error; y-stddev, x-position, y-position, comment" << std::endl;
     }
     out << test_val << "; "
         << errorPos()[0] << "; " << stdDevPos()[0] << "; "
         << errorPos()[1] << "; " << stdDevPos()[1] << "; "
-        << averagePos()[0] << "; " << averagePos()[1]
-        << std::endl;
+        << averagePos()[0] << "; " << averagePos()[1] << "; "
+        << "\"" << comment << "\"" << std::endl;
 }
 
 void CameraManager::setExposure(double const exposure_us) {
@@ -328,7 +328,12 @@ void CameraManager::setRefB(const double val) {
 }
 
 void CameraManager::setTestVal(const double val) {
-    test_val = val;
+  test_val = val;
+}
+
+void CameraManager::setComment(const std::string &_comment)
+{
+  comment = _comment;
 }
 
 void CameraManager::assignRefA() {
